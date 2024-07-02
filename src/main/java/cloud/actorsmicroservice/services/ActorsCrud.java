@@ -7,5 +7,5 @@ import reactor.core.publisher.Flux;
 
 public interface ActorsCrud extends ReactiveMongoRepository<ActorEntity, String>{
 
-    public Flux<ActorEntity> findAllByNameIgnoreCase(@Param("value") String name);
+    public Flux<ActorEntity> findAllByNameContainsIgnoreCase(@Param("value") String name);
 }

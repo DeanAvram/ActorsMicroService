@@ -51,7 +51,7 @@ public class ActorServiceImplantation implements ActorService {
         Flux<ActorEntity> actors;
         try {
             actors = switch (criteria) {
-                case ("name") -> this.actors.findAllByNameIgnoreCase(value);
+                case ("name") -> this.actors.findAllByNameContainsIgnoreCase(value);
                 default -> throw new BadRequestException("Invalid criteria: " + criteria);
             };
         }
