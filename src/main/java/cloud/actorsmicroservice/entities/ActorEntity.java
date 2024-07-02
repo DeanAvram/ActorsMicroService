@@ -3,6 +3,7 @@ package cloud.actorsmicroservice.entities;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDate;
 import java.util.Set;
 
 @Document(collection = "MOVIES")
@@ -11,7 +12,7 @@ public class ActorEntity {
     @Id
     private String id;
     private String name;
-    private String birthdate;
+    private LocalDate birthdate;
     private Set<String> movies;
 
     public ActorEntity() {
@@ -33,11 +34,11 @@ public class ActorEntity {
         this.name = name;
     }
 
-    public String getBirthdate() {
+    public LocalDate getBirthdate() {
         return birthdate;
     }
 
-    public void setBirthdate(String birthdate) {
+    public void setBirthdate(LocalDate birthdate) {
         this.birthdate = birthdate;
     }
 

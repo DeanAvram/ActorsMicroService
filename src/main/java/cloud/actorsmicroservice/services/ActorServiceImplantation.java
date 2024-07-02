@@ -7,10 +7,16 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.regex.Pattern;
+
 @Service
 public class ActorServiceImplantation implements ActorService {
 
     private ActorsCrud actors;
+
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     public ActorServiceImplantation(ActorsCrud actors) {this.actors = actors;}
 
@@ -21,7 +27,7 @@ public class ActorServiceImplantation implements ActorService {
                 .flatMap(
                         exists -> {
                             if (exists)
-                                return Mono.error(new BadRequestException("Movie with id: " + actor.getId() + " already exists"));
+                                return Mono.error(new BadRequestException("Actor with id: " + actor.getId() + " already exists"));
                             return Mono.just(actor);
                         })
                 .map(this::actorToEntity)
@@ -62,7 +68,7 @@ public class ActorServiceImplantation implements ActorService {
                     if (actor.getName() != null)
                         actorEntity.setName(actor.getName());
                     if (actor.getBirthdate() != null)
-                        actorEntity.setBirthdate(actor.getBirthdate());
+                        actorEntity.setBirthdate(convertToDate(actor.getBirthdate()));
                     if (actor.getMovies() != null)
                         actorEntity.setMovies(actor.getMovies());
                     return this.actors.save(actorEntity);
@@ -85,7 +91,7 @@ public class ActorServiceImplantation implements ActorService {
     private ActorBoundary actorToBoundary(ActorEntity actorEntity) {
         ActorBoundary rv = new ActorBoundary();
         rv.setId(actorEntity.getId());
-        rv.setBirthdate(actorEntity.getBirthdate());
+        rv.setBirthdate(actorEntity.getBirthdate().format(formatter));
         rv.setName(actorEntity.getName());
         rv.setMovies(actorEntity.getMovies());
     return rv;
@@ -97,9 +103,29 @@ public class ActorServiceImplantation implements ActorService {
             throw new BadRequestException("Actor id cannot be null.");
         }
         rv.setId(actorBoundary.getId());
-        rv.setBirthdate(actorBoundary.getBirthdate());
+        if (actorBoundary.getBirthdate() == null)
+            throw new BadRequestException("Birthdate must be provided.");
+        try {
+            rv.setBirthdate(convertToDate(actorBoundary.getBirthdate()));
+        } catch (BadRequestException e) {
+            throw new BadRequestException("Invalid date format. Please use dd-mm-yyyy format.");
+        }
         rv.setName(actorBoundary.getName());
         rv.setMovies(actorBoundary.getMovies());
         return rv;
+    }
+
+    private LocalDate convertToDate(String dateString) throws BadRequestException {
+        try {
+            return LocalDate.parse(dateString, formatter);
+        } catch (Exception e) {
+            throw new BadRequestException("Invalid date format. please use dd-mm-yyyy format.");
+        }
+    }
+
+    private boolean isValidEmail(String email) {
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(\\.[A-Za-z]{2,})?$";
+        Pattern pattern = Pattern.compile(emailRegex);
+        return email != null && pattern.matcher(email).matches();
     }
 }
