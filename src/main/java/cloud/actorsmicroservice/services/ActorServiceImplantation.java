@@ -1,22 +1,43 @@
 package cloud.actorsmicroservice.services;
 
 import cloud.actorsmicroservice.boundaries.ActorBoundary;
+import cloud.actorsmicroservice.boundaries.ActorMoviesBoundary;
 import cloud.actorsmicroservice.entities.ActorEntity;
 import cloud.actorsmicroservice.exception.BadRequestException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.regex.Pattern;
 
 @Service
-public class ActorServiceImplantation implements ActorService {
+public class ActorServiceImplantation implements ActorMoviesService {
 
     private ActorsCrud actors;
+    private WebClient moviesWebClient;
+    private WebClient usersWebClient;
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+    @Value("${remote.movies.service.url: http://localhost:9090/movies}")
+    public void setMoviesWebClientWebClient(String remoteServiceUrl){
+        //System.err.println("%%%" + remoteServiceUrl);
+        this.moviesWebClient = WebClient.create(remoteServiceUrl);
+    }
+
+    @Value("${remote.users.service.url: http://localhost:8080/users}")
+    public void setUsersWebClientWebClient(String remoteServiceUrl){
+        //System.err.println("%%%" + remoteServiceUrl);
+        this.usersWebClient = WebClient.create(remoteServiceUrl);
+    }
+
+
 
     public ActorServiceImplantation(ActorsCrud actors) {this.actors = actors;}
 
@@ -36,7 +57,7 @@ public class ActorServiceImplantation implements ActorService {
     }
 
 
-
+    @Deprecated
     @Override
     public Flux<ActorBoundary> getAllActors() {
         return this.actors
@@ -44,8 +65,37 @@ public class ActorServiceImplantation implements ActorService {
                 .map(this::actorToBoundary);
     }
 
+    @Override
+    public Flux<ActorMoviesBoundary> getAllActorsWithMovies() {
+        return this.actors.findAll()
+                .flatMap(actor -> {
+                    Flux<Set<Map<String, Object>>> moviesFlux = Flux.fromIterable(actor.getMovies())
+                            .flatMap(movieId -> {
+                                //System.out.println("Movie id: " + movieId);
+                                return this.moviesWebClient.get()
+                                        .uri(uriBuilder -> uriBuilder
+                                                .queryParam("criteria", "id")
+                                                .queryParam("value", movieId)
+                                                .build())
+                                        .retrieve()
+                                        .bodyToFlux(new ParameterizedTypeReference<Map<String, Object>>() {})
+                                        .collectList()
+                                        .map(HashSet::new);
+                            });
+                    return moviesFlux.collectList()
+                            .flatMap(movieSets -> {
+
+                                ActorMoviesBoundary actorMoviesBoundary = actorToActorMoviesBoundary(actor);
+                                actorMoviesBoundary.setMovies(new HashSet<>());
+                                movieSets.forEach(actorMoviesBoundary.getMovies()::addAll);
+                                return Mono.just(actorMoviesBoundary);
+                            });
+                });
+    }
 
 
+
+    @Deprecated
     @Override
     public Flux<ActorBoundary> getActorByCriteria(String criteria, String value) {
         Flux<ActorEntity> actors;
@@ -60,6 +110,11 @@ public class ActorServiceImplantation implements ActorService {
             throw new BadRequestException("Invalid value for criteria: " + criteria + ". Value must be an integer.");
         }
         return actors.map(this::actorToBoundary);
+    }
+
+    @Override
+    public Flux<ActorMoviesBoundary> getActorsWithMoviesByCriteria(String criteria, String value) {
+        return null;
     }
 
     @Override
@@ -98,6 +153,14 @@ public class ActorServiceImplantation implements ActorService {
     return rv;
     }
 
+    private ActorMoviesBoundary actorToActorMoviesBoundary(ActorEntity actorEntity) {
+        ActorMoviesBoundary rv = new ActorMoviesBoundary();
+        rv.setId(actorEntity.getId());
+        rv.setBirthdate(actorEntity.getBirthdate().format(formatter));
+        rv.setName(actorEntity.getName());
+        return rv;
+    }
+
     private ActorEntity actorToEntity(ActorBoundary actorBoundary) {
         ActorEntity rv = new ActorEntity();
         if(actorBoundary.getId() == null) {
@@ -129,4 +192,6 @@ public class ActorServiceImplantation implements ActorService {
         Pattern pattern = Pattern.compile(emailRegex);
         return email != null && pattern.matcher(email).matches();
     }
+
+
 }

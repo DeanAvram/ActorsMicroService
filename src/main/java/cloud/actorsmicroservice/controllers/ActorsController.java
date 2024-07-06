@@ -1,7 +1,9 @@
 package cloud.actorsmicroservice.controllers;
 
 import cloud.actorsmicroservice.boundaries.ActorBoundary;
+import cloud.actorsmicroservice.boundaries.ActorMoviesBoundary;
 import cloud.actorsmicroservice.exception.BadRequestException;
+import cloud.actorsmicroservice.services.ActorMoviesService;
 import cloud.actorsmicroservice.services.ActorService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -12,19 +14,20 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/actors")
 public class ActorsController {
 
-    private ActorService actorsService;
+    private ActorMoviesService actorsService;
 
-    public ActorsController(ActorService actorsService) {this.actorsService = actorsService;}
+
+    public ActorsController(ActorMoviesService actorsService) {this.actorsService = actorsService;}
 
     @GetMapping(
             produces = {MediaType.TEXT_EVENT_STREAM_VALUE}
     )
-    public Flux<ActorBoundary> getActors(@RequestParam(value = "criteria", required = false) String criteria,
-                                         @RequestParam(value = "value", required = false) String value) {
+    public Flux<ActorMoviesBoundary> getActors(@RequestParam(value = "criteria", required = false) String criteria,
+                                               @RequestParam(value = "value", required = false) String value) {
         if (criteria == null && value == null)
-            return this.actorsService.getAllActors();
+            return this.actorsService.getAllActorsWithMovies();
         if (criteria != null && value != null)
-            return this.actorsService.getActorByCriteria(criteria, value);
+            return this.actorsService.getActorsWithMoviesByCriteria(criteria, value);
         throw new BadRequestException("Provide both criteria and value or none.");
 
     }

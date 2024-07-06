@@ -6,7 +6,9 @@ import reactor.core.publisher.Mono;
 
 public interface ActorService {
     public Mono<ActorBoundary> createActor(ActorBoundary actor);
+    @Deprecated
     public Flux<ActorBoundary> getAllActors();
+    @Deprecated
     public Flux<ActorBoundary> getActorByCriteria(String criteria, String value);
     public Mono<Void> updateActor(String id, String email, ActorBoundary actor);
     public Mono<Void> deleteActor(String id, String email);
