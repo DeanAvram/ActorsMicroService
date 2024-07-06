@@ -6,11 +6,13 @@ import cloud.actorsmicroservice.entities.ActorEntity;
 import cloud.actorsmicroservice.exception.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -70,18 +72,15 @@ public class ActorServiceImplantation implements ActorMoviesService {
         return this.actors.findAll()
                 .flatMap(actor -> {
                     Flux<Set<Map<String, Object>>> moviesFlux = Flux.fromIterable(actor.getMovies())
-                            .flatMap(movieId -> {
-                                //System.out.println("Movie id: " + movieId);
-                                return this.moviesWebClient.get()
-                                        .uri(uriBuilder -> uriBuilder
-                                                .queryParam("criteria", "id")
-                                                .queryParam("value", movieId)
-                                                .build())
-                                        .retrieve()
-                                        .bodyToFlux(new ParameterizedTypeReference<Map<String, Object>>() {})
-                                        .collectList()
-                                        .map(HashSet::new);
-                            });
+                            .flatMap(movieId -> this.moviesWebClient.get()
+                                    .uri(uriBuilder -> uriBuilder
+                                            .queryParam("criteria", "id")
+                                            .queryParam("value", movieId)
+                                            .build())
+                                    .retrieve()
+                                    .bodyToFlux(new ParameterizedTypeReference<Map<String, Object>>() {})
+                                    .collectList()
+                                    .map(HashSet::new));
                     return moviesFlux.collectList()
                             .flatMap(movieSets -> {
 
@@ -118,8 +117,10 @@ public class ActorServiceImplantation implements ActorMoviesService {
     }
 
     @Override
-    public Mono<Void> updateActor(String id, String email, ActorBoundary actor) {
-            return this.actors.findById(id)
+    public Mono<Void> updateActor(String id, String email, String password, ActorBoundary actor) {
+        return isUserExists(email, password)
+                .then(this.actors.findById(id))
+                .switchIfEmpty(Mono.error(new BadRequestException("Actor with id: " + id + " does not exist.")))
                 .flatMap(actorEntity -> {
                     if (actor.getName() != null)
                         actorEntity.setName(actor.getName());
@@ -133,8 +134,10 @@ public class ActorServiceImplantation implements ActorMoviesService {
     }
 
     @Override
-    public Mono<Void> deleteActor(String id, String email) {
-        return this.actors.findById(id)
+    public Mono<Void> deleteActor(String id, String email, String password) {
+        return isUserExists(email, password)
+                .then(this.actors.findById(id))
+                .switchIfEmpty(Mono.error(new BadRequestException("Actor with id: " + id + " does not exist.")))
                 .flatMap(actors::delete)
                 .then();
     }
@@ -191,6 +194,20 @@ public class ActorServiceImplantation implements ActorMoviesService {
         String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(\\.[A-Za-z]{2,})?$";
         Pattern pattern = Pattern.compile(emailRegex);
         return email != null && pattern.matcher(email).matches();
+    }
+
+    private Mono<Boolean> isUserExists(String email, String password) {
+        if (!isValidEmail(email))
+            return Mono.error(new BadRequestException("Invalid email format."));
+        return this.usersWebClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/{email}")
+                        .queryParam("password", password)
+                        .build(email))
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, response -> Mono.error(new BadRequestException("Can not find or authenticate user: " + email) ))
+                .toBodilessEntity()
+                .map(response -> response.getStatusCode().is2xxSuccessful());
     }
 
 

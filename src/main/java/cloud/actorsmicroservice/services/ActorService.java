@@ -10,7 +10,7 @@ public interface ActorService {
     public Flux<ActorBoundary> getAllActors();
     @Deprecated
     public Flux<ActorBoundary> getActorByCriteria(String criteria, String value);
-    public Mono<Void> updateActor(String id, String email, ActorBoundary actor);
-    public Mono<Void> deleteActor(String id, String email);
+    public Mono<Void> updateActor(String id, String email, String password, ActorBoundary actor);
+    public Mono<Void> deleteActor(String id, String email, String password);
     public Mono<Void> deleteAllActors();
 }

@@ -45,15 +45,16 @@ public class ActorsController {
             path = "/{actorId}",
             consumes = {MediaType.APPLICATION_JSON_VALUE}
     )
-    public Mono<Void> updateActor(@PathVariable(name = "actorId") String actorId, @RequestParam(name = "email") String email, @RequestBody ActorBoundary actor) {
-        return actorsService.updateActor(actorId, email, actor);
+    public Mono<Void> updateActor(@PathVariable(name = "actorId") String actorId, @RequestParam(name = "email") String email, @RequestParam(name = "password") String password,
+                                  @RequestBody ActorBoundary actor) {
+        return actorsService.updateActor(actorId, email, password, actor);
     }
 
     @DeleteMapping(
             path = "/{actorId}"
     )
-    public Mono<Void> deleteActor(@PathVariable(name = "actorId") String actorId, @RequestParam(name = "email") String email) {
-        return actorsService.deleteActor(actorId, email);
+    public Mono<Void> deleteActor(@PathVariable(name = "actorId") String actorId, @RequestParam(name = "email") String email, @RequestParam(name = "password") String password) {
+        return actorsService.deleteActor(actorId, email, password);
     }
 
     @DeleteMapping
