@@ -69,7 +69,8 @@ public class ActorServiceImplantation implements ActorMoviesService {
 
     @Override
     public Flux<ActorMoviesBoundary> getAllActorsWithMovies() {
-        return this.actors.findAll()
+        return actors.findAll().flatMap(this::getActorMoviesBoundary);
+        /*return this.actors.findAll()
                 .flatMap(actor -> {
                     Flux<Set<Map<String, Object>>> moviesFlux = Flux.fromIterable(actor.getMovies())
                             .flatMap(movieId -> this.moviesWebClient.get()
@@ -89,7 +90,7 @@ public class ActorServiceImplantation implements ActorMoviesService {
                                 movieSets.forEach(actorMoviesBoundary.getMovies()::addAll);
                                 return Mono.just(actorMoviesBoundary);
                             });
-                });
+                });*/
     }
 
 
@@ -113,7 +114,18 @@ public class ActorServiceImplantation implements ActorMoviesService {
 
     @Override
     public Flux<ActorMoviesBoundary> getActorsWithMoviesByCriteria(String criteria, String value) {
-        return null;
+        Flux<ActorEntity> actors;
+        try {
+            actors = switch (criteria) {
+                case ("id") -> this.actors.findById(value).flux();
+                case ("name") -> this.actors.findAllByNameContainsIgnoreCase(value);
+                default -> throw new BadRequestException("Invalid criteria: " + criteria);
+            };
+        }
+        catch (NumberFormatException e) {
+            throw new BadRequestException("Invalid value for criteria: " + criteria + ". Value must be an integer.");
+        }
+        return actors.flatMap(this::getActorMoviesBoundary);
     }
 
     @Override
@@ -162,6 +174,27 @@ public class ActorServiceImplantation implements ActorMoviesService {
         rv.setBirthdate(actorEntity.getBirthdate().format(formatter));
         rv.setName(actorEntity.getName());
         return rv;
+    }
+
+    private Mono<ActorMoviesBoundary> getActorMoviesBoundary(ActorEntity actor) {
+        Flux<Set<Map<String, Object>>> moviesFlux = Flux.fromIterable(actor.getMovies())
+                .flatMap(movieId -> this.moviesWebClient.get()
+                        .uri(uriBuilder -> uriBuilder
+                                .queryParam("criteria", "id")
+                                .queryParam("value", movieId)
+                                .build())
+                        .retrieve()
+                        .bodyToFlux(new ParameterizedTypeReference<Map<String, Object>>() {})
+                        .collectList()
+                        .map(HashSet::new));
+
+        return moviesFlux.collectList()
+                .flatMap(movieSets -> {
+                    ActorMoviesBoundary actorMoviesBoundary = actorToActorMoviesBoundary(actor);
+                    actorMoviesBoundary.setMovies(new HashSet<>());
+                    movieSets.forEach(actorMoviesBoundary.getMovies()::addAll);
+                    return Mono.just(actorMoviesBoundary);
+                });
     }
 
     private ActorEntity actorToEntity(ActorBoundary actorBoundary) {
