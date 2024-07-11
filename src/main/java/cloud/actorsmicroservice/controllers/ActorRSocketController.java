@@ -3,7 +3,6 @@ package cloud.actorsmicroservice.controllers;
 import cloud.actorsmicroservice.boundaries.ActorMoviesBoundary;
 import cloud.actorsmicroservice.boundaries.ActorSearchBoundray;
 import cloud.actorsmicroservice.services.ActorMoviesService;
-import cloud.actorsmicroservice.services.ActorService;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -16,20 +15,18 @@ public class ActorRSocketController {
 
     public ActorRSocketController(ActorMoviesService actorMoviesService) {this.actorMoviesService = actorMoviesService;}
 
-    //--fnf --route=Delete-All-Actors--debug tcp://localhost:7002
-@MessageMapping("Delete-All-Actors")
+    //--fnf --route=delete-all-actors--debug tcp://localhost:7002
+@MessageMapping("delete-all-actors")
     public Mono<Void> deleteAllActors(){
         return this.actorMoviesService
                 .deleteAllActors()
                 .log();
     }
 
-   // --channel --route=get-actors-by-id-channel --data=- --debug tcp://localhost:7002
-    @MessageMapping("get-actors-by-id-channel")
-    public Flux<ActorMoviesBoundary> getById (
+   // --channel --route=get-actors-by-criteria-channel --data=- --debug tcp://localhost:7002
+    @MessageMapping("get-actors-by-criteria-channel")
+    public Flux<ActorMoviesBoundary> getByCriteria(
             @Payload Flux<ActorSearchBoundray> filters){
-        //this.log.trace("initialized channel with consumer...");
-
         return filters
                 .flatMap(filter->
                 this.actorMoviesService
