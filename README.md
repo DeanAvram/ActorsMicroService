@@ -43,5 +43,5 @@ java -jar rsc-0.9.1.jar --fnf --route=delete-all-actors--debug tcp://localhost:7
 We are using channel to get actors by criteria. Channel is a bidirectional communication between consumer and server.
 
 ```shell
-java -jar rsc-0.9.1.jar --channel --route=get-actors-by-criteria-channel --data=- --debug tcp://localhost:7002
+java -jar rsc-0.9.1.jar --channel --route=get-actors-by-criteria-channel --data=- tcp://localhost:7002
 ```
