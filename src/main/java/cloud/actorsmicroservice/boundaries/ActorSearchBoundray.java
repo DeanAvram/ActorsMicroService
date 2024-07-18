@@ -4,7 +4,8 @@ public class ActorSearchBoundray {
     private String criteria;
     private String value;
 
-    public ActorSearchBoundray (){};
+    public ActorSearchBoundray (){
+    };
 
     public ActorSearchBoundray(String criteria, String value){
         this.criteria = criteria;
