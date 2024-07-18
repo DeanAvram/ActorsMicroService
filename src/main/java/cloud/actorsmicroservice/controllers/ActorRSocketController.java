@@ -1,7 +1,7 @@
 package cloud.actorsmicroservice.controllers;
 
 import cloud.actorsmicroservice.boundaries.ActorMoviesBoundary;
-import cloud.actorsmicroservice.boundaries.ActorSearchBoundray;
+import cloud.actorsmicroservice.boundaries.ActorSearchBoundary;
 import cloud.actorsmicroservice.services.ActorMoviesService;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
@@ -26,7 +26,7 @@ public class ActorRSocketController {
    // --channel --route=get-actors-by-criteria-channel --data=- --debug tcp://localhost:7002
    @MessageMapping("get-actors-by-criteria-channel")
    public Flux<ActorMoviesBoundary> getByCriteria(
-           @Payload Flux<ActorSearchBoundray> filters) {
+           @Payload Flux<ActorSearchBoundary> filters) {
        return filters.flatMap(filter -> {
            if (filter.getCriteria() == null && filter.getValue() == null) {
                return this.actorMoviesService.getAllActorsWithMovies();

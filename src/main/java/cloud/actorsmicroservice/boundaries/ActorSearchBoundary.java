@@ -1,13 +1,13 @@
 package cloud.actorsmicroservice.boundaries;
 
-public class ActorSearchBoundray {
+public class ActorSearchBoundary {
     private String criteria;
     private String value;
 
-    public ActorSearchBoundray (){
+    public ActorSearchBoundary(){
     };
 
-    public ActorSearchBoundray(String criteria, String value){
+    public ActorSearchBoundary(String criteria, String value){
         this.criteria = criteria;
         this.value = value;
     }
